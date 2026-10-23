@@ -11,13 +11,11 @@ from learn10 import run_learn as learn10
 
 LEARN4_MODEL_PATH = r"BaseLearn\Learn\learn4_model.pth"
 LEARN4_JUST_PARMS = True
-MNIST_DATASET_PATH = r"Dataset\MNIST"
+MNIST_DATASET_PATH = r"Dataset"
 RUN_LEARNS = [
     learn1, learn2, learn3, learn4, learn5,
     learn6, learn7, learn8, learn9, learn10
 ]
-
-
 
 def main():
     is_running = True
@@ -40,11 +38,10 @@ def main():
                 print(f"===== Finished {choice_num} - {learning.__doc__} =====")
             else:
                 print("[main] Error: number between 1 and 10.")
-        except ValueError:
-            print("[main] Error: invalid input.")
+        except ValueError as e:
+            print(f"[main] Error: invalid input. {e}")
             for i, learning in enumerate(RUN_LEARNS, start=1):
                 print(f"    {i} - {learning.__doc__}")
-
 
 if __name__ == "__main__":
     main()
