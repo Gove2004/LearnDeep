@@ -3,7 +3,7 @@
 */__pycache__/
 
 Temp/
-
+Logs/
 Datasets/
 Checkpoints/
 *.pth

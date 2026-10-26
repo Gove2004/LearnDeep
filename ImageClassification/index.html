@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>图像分类</title>
+  <style>
+    :root {
+      --bg: #f7f8fa;
+      --card: #fff;
+      --txt: #1a1a1a;
+      --sub: #666;
+      --accent: #4f46e5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg); color: var(--txt);
+      display: flex; justify-content: center; padding: 2rem 1rem; margin: 0;
+    }
+    .card {
+      background: var(--card); border-radius: 12px; padding: 2rem;
+      max-width: 560px; width: 100%;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, .06);
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+    #meta { color: var(--sub); font-size: .85rem; margin: 0 0 1.2rem; }
+    .drop {
+      border: 2px dashed #ccc; border-radius: 8px; padding: 2.5rem;
+      text-align: center; cursor: pointer; transition: .2s; color: var(--sub);
+    }
+    .drop:hover, .drop.drag { border-color: var(--accent); background: #f5f5ff; }
+    #preview { display: none; margin: 1rem 0; border-radius: 8px; max-height: 240px; width: 100%; }
+    .row { display: flex; align-items: center; gap: .6rem; margin: .55rem 0; }
+    .tag {
+      font-size: .8rem; padding: .15rem .55rem; border-radius: 4px;
+      color: #fff; min-width: 6.5rem; text-align: center; flex-shrink: 0;
+    }
+    .bar { flex: 1; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+    .bar > i { display: block; height: 100%; }
+    .pct { width: 3.5rem; font-size: .85rem; text-align: right; }
+    #empty { color: var(--sub); font-size: .85rem; text-align: center; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>图像分类</h1>
+    <p id="meta">正在加载…</p>
+    <div id="drop" class="drop"><p>拖拽图片到这里，或点击选择</p></div>
+    <input type="file" id="file" accept="image/*" hidden />
+    <img id="preview" alt="" />
+    <div id="results"><div id="empty">暂无结果</div></div>
+  </div>
+
+  <script>
+    const drop = document.getElementById('drop');
+    const file = document.getElementById('file');
+    const preview = document.getElementById('preview');
+    const results = document.getElementById('results');
+
+    drop.addEventListener('click', () => file.click());
+    file.addEventListener('change', () => handleFile(file.files[0]));
+
+    ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.add('drag');
+    }));
+    ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => {
+      e.preventDefault(); drop.classList.remove('drag');
+    }));
+    drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+
+    function colorOf(i, n) {
+      const h = (i * 360 / n + 200) % 360;
+      return `hsl(${h} 65% 50%)`;
+    }
+
+    async function handleFile(f) {
+      if (!f || !f.type.startsWith('image/')) return;
+      preview.src = URL.createObjectURL(f);
+      preview.style.display = 'block';
+      results.innerHTML = '<div id="empty">识别中…</div>';
+
+      const form = new FormData();
+      form.append('image', f);
+      try {
+        const res = await fetch('/api/predict', { method: 'POST', body: form });
+        const data = await res.json();
+        render(data.result);
+      } catch (err) {
+        results.innerHTML = `<div id="empty">请求失败：${err}</div>`;
+      }
+    }
+
+    function render(items) {
+      results.innerHTML = '';
+      if (!items || !items.length) {
+        results.innerHTML = '<div id="empty">暂无结果</div>';
+        return;
+      }
+      const n = items.length;
+      items.forEach((it, i) => {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const tag = document.createElement('span');
+        tag.className = 'tag';
+        tag.style.background = colorOf(i, n);
+        tag.textContent = it.class;
+
+        const bar = document.createElement('div');
+        bar.className = 'bar';
+        const fill = document.createElement('i');
+        fill.style.width = (it.prob * 100).toFixed(1) + '%';
+        fill.style.background = colorOf(i, n);
+        bar.appendChild(fill);
+
+        const pct = document.createElement('span');
+        pct.className = 'pct';
+        pct.textContent = (it.prob * 100).toFixed(1) + '%';
+
+        row.append(tag, bar, pct);
+        results.appendChild(row);
+      });
+    }
+
+    fetch('/api/classes')
+      .then(r => r.json())
+      .then(d => {
+        document.getElementById('meta').textContent =
+          `支持 ${d.classes.length} 类：${d.classes.join(' / ')}`;
+      })
+      .catch(() => {
+        document.getElementById('meta').textContent = '服务未连接';
+      });
+  </script>
+</body>
+</html>
