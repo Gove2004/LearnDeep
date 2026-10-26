@@ -4,6 +4,6 @@
 
 Temp/
 
-Dataset/
-
+Datasets/
+Checkpoints/
 *.pth

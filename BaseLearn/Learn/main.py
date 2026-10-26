@@ -9,9 +9,9 @@ from learn8 import run_learn as learn8
 from learn9 import run_learn as learn9
 from learn10 import run_learn as learn10
 
-LEARN4_MODEL_PATH = r"BaseLearn\Learn\learn4_model.pth"
+LEARN4_MODEL_PATH = r".\Checkpoints\learn4_model.pth"
 LEARN4_JUST_PARMS = True
-MNIST_DATASET_PATH = r"Dataset"
+MNIST_DATASET_PATH = r".\Datasets"
 RUN_LEARNS = [
     learn1, learn2, learn3, learn4, learn5,
     learn6, learn7, learn8, learn9, learn10
