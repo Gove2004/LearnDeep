@@ -8,7 +8,7 @@
 ImageClassification/
 ├── train.py       训练脚本（数据增强 / AdamW / cosine / 早停 / 双 ckpt / CSV 日志）
 ├── infer.py       单图推理（配置驱动，加载权重后对一张图做预测）
-├── draw.py        训练曲线看板（读 CSV，画 loss/acc/lr/best 四张图）
+├── draw.py        训练曲线看板（读 CSV，画 loss/acc/lr 三张图）
 ├── app.py         FastAPI Web 应用（模型服务 + 前端页面）
 ├── index.html     Web 前端（纯原生，零 CDN，拖拽上传，动态渲染）
 ├── dataset.py     5 个数据集类（MNIST/CIFAR10/CIFAR100/OCT/Garbage）
@@ -65,7 +65,13 @@ python ImageClassification/train.py
 python ImageClassification/draw.py
 ```
 
-读 `Logs/image_classification_log.csv`，画 4 张图存到 `Logs/plots/training_curves.png`。`Config.SHOW = True` 时弹窗，`False` 时存图。
+读 `Logs/image_classification_log.csv`，弹窗显示 3 张子图：Loss（train/test）、Accuracy（train/test）、Learning Rate（cosine）。
+
+想存图时把 `draw.py` 里 `Config.SAVE_PATH` 改成目标路径（默认 `Path("")` 为空，只弹窗不存盘），例如：
+
+```python
+SAVE_PATH = Path("./Logs/plots/training_curves.png")
+```
 
 ### 3. 单图推理
 

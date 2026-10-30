@@ -153,7 +153,7 @@ class OCTImageClassificationDataset(BaseImageClassificationDataset):
         )
         val_dataset = datasets.ImageFolder(
             root=val_data_dir,
-            transform=self.test_transforms
+            transform=self.train_transforms
         )
         return ConcatDataset([train_dataset, val_dataset])
 
