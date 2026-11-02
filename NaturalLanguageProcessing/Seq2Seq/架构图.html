@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Seq2Seq 架构图</title>
+<style>
+  :root{
+    --blue:#4a90d9; --blueL:#6ba8e8; --green:#5cb85c;
+    --box:#5b9bd5; --boxDark:#4a86bd; --edge:#c8d6e5;
+    --txt:#1a1a1a; --sub:#666; --bg:#ffffff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:var(--bg);color:var(--txt);
+       font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  h1{font-size:1.3rem;margin:0 0 4px;font-weight:700}
+  .sub{color:var(--sub);font-size:.82rem;margin:0 0 26px}
+  .sheet{margin-bottom:54px}
+  h2{font-size:1.05rem;margin:0 0 16px;padding-bottom:8px;border-bottom:2px solid #eee}
+
+  /* generic block */
+  .b{
+    background:var(--box); color:#fff; border-radius:3px;
+    padding:7px 14px; font-size:.8rem; font-weight:600;
+    text-align:center; display:inline-block; white-space:nowrap;
+    box-shadow:0 1px 2px rgba(0,0,0,.15);
+  }
+  .b.gray{background:#8fa4b8}
+  .b.dark{background:var(--boxDark)}
+  .b.sm{font-size:.74rem;padding:5px 10px}
+  .b.wide{display:block;width:100%}
+
+  .grp{
+    border:1.5px solid #7cc47c; border-radius:4px;
+    padding:14px; background:#fbfdfb; display:inline-block;
+  }
+  .grp .lbl{font-size:.7rem;color:#3d8b3d;font-weight:700;margin-bottom:10px}
+
+  .row{display:flex;align-items:center;gap:10px;justify-content:center}
+  .col{display:flex;flex-direction:column;align-items:center;gap:0}
+  .ar{color:#7a8fa6;font-size:1rem;line-height:1;text-align:center}
+  .ar small{display:block;font-size:.65rem;color:#94a5b8;font-family:ui-monospace,Consolas,monospace}
+
+  /* numbered red circle like the reference */
+  .num{
+    position:absolute; left:-11px; top:50%; transform:translateY(-50%);
+    width:21px;height:21px;border-radius:50%;background:#e02020;color:#fff;
+    font-size:.68rem;font-weight:700;display:flex;align-items:center;
+    justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3);
+  }
+  .rel{position:relative}
+
+  /* residual bypass curve */
+  .res{
+    border:1.5px solid #9db8d2; border-right:none;
+    border-radius:6px 0 0 6px; padding:9px 0 9px 12px; margin-left:-14px;
+  }
+
+  table{border-collapse:collapse;font-size:.74rem;margin-top:10px}
+  th,td{border:1px solid #dde5ec;padding:4px 9px;text-align:left}
+  th{background:#f2f7fb;color:#4a6b88;font-weight:600}
+  td.m{font-family:ui-monospace,Consolas,monospace;color:#2b6ca3}
+  .cap{font-size:.76rem;color:var(--sub);margin-top:12px;line-height:1.7}
+  .cap b{color:#1a1a1a}
+  .io{display:flex;gap:26px;justify-content:center;flex-wrap:wrap}
+  .iobox{border:1px dashed #c2d1de;border-radius:4px;padding:10px 16px;
+         font-size:.75rem;color:var(--sub);background:#fafcfe}
+  .iobox b{color:#1a1a1a;display:block;margin-bottom:3px;font-size:.78rem}
+</style>
+</head>
+<body>
+
+<!-- ===================== MODEL 1 ===================== -->
+<div class="sheet">
+  <h1>GRUSeq2Seq —— 无 Attention</h1>
+  <p class="sub">vocab=59　embed=64　hidden=128　T_in=29　T_out=10　参数量 164,155</p>
+
+  <div class="io" style="margin-bottom:22px">
+    <div class="iobox"><b>x 输入</b>(N, 29)　字符 id</div>
+    <div class="iobox"><b>t 输入</b>(N, 10)　答案（错位一位）</div>
+    <div class="iobox"><b>输出 logits</b>(N, 10, 59)</div>
+  </div>
+
+  <div style="display:flex;justify-content:center;gap:80px;align-items:flex-start">
+
+    <!-- ENCODER -->
+    <div class="col">
+      <div class="grp">
+        <div class="lbl">ENCODER</div>
+        <div class="col">
+          <div class="b">Input x　(N,29)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">1</span>Embedding (59→64)</div>
+          <div class="ar">▼ <small>(N,29,64)</small></div>
+          <div class="b rel"><span class="num">2</span>GRU (64→128)</div>
+          <div class="ar">▼</div>
+          <div class="row" style="gap:22px">
+            <div class="col">
+              <div class="b dark sm">out (N,29,128)</div>
+              <div style="font-size:.68rem;color:#c0392b;margin-top:5px;font-weight:600">✕ 丢弃</div>
+            </div>
+            <div class="col">
+              <div class="b dark sm">h (1,N,128)</div>
+              <div style="font-size:.68rem;color:#2e8b57;margin-top:5px;font-weight:600">✓ 保留</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTLENECK + DECODER -->
+    <div class="col">
+      <div class="ar" style="font-size:1.1rem">▼ <small>h 作为解码器初始状态</small></div>
+
+      <div style="border:2px dashed #e67e22;border-radius:6px;padding:10px 18px;
+                  background:#fffaf2;text-align:center;margin:8px 0 16px">
+        <div style="font-size:.78rem;font-weight:700;color:#d35400">⚠ 瓶颈</div>
+        <div style="font-size:.74rem;color:#8a5a2b;margin-top:4px">
+          29 个字符的全部信息<br>压进 <b>1 个 128 维向量</b>
+        </div>
+      </div>
+
+      <div class="ar">▼</div>
+
+      <div class="grp">
+        <div class="lbl">DECODER</div>
+        <div class="col">
+          <div class="b">Input t　(N,10)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">3</span>Embedding (59→64)</div>
+          <div class="ar">▼ <small>(N,10,64)</small></div>
+          <div class="b rel"><span class="num">4</span>GRU (64→128)</div>
+          <div class="ar">▼ <small>(N,10,128)</small></div>
+          <div class="b rel"><span class="num">5</span>Linear (128→59)</div>
+          <div class="ar">▼</div>
+          <div class="b dark">logits　(N,10,59)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table style="margin:22px auto 0">
+    <tr><th>#</th><th>层</th><th>权重形状</th><th>参数量</th></tr>
+    <tr><td>1</td><td>encoder.embed</td><td class="m">(59,64)</td><td>3,776</td></tr>
+    <tr><td>2</td><td>encoder.gru</td><td class="m">W_ih (384,64) · W_hh (384,128)</td><td>74,496</td></tr>
+    <tr><td>3</td><td>decoder.embed</td><td class="m">(59,64)</td><td>3,776</td></tr>
+    <tr><td>4</td><td>decoder.gru</td><td class="m">W_ih (384,64) · W_hh (384,128)</td><td>74,496</td></tr>
+    <tr><td>5</td><td>decoder.fc</td><td class="m">(59,128)</td><td>7,611</td></tr>
+    <tr><td colspan="3" style="text-align:right;font-weight:700">合计</td>
+        <td style="font-weight:700;color:#d35400">164,155</td></tr>
+  </table>
+
+  <p class="cap" style="text-align:center;max-width:760px;margin:16px auto 0">
+    <b>GRU 的 384 = 3 × 128</b>：GRU 有 reset / update / new 三组门，每组 128 维。<br>
+    解码器一次前向算完 10 步（teacher forcing），不是逐步循环。
+  </p>
+</div>
+
+<!-- ===================== MODEL 2 ===================== -->
+<div class="sheet">
+  <h1>AttentionSeq2Seq —— Bahdanau Attention</h1>
+  <p class="sub">vocab=59　embed=64　hidden=128　T_in=29　T_out=10　参数量 253,755（+54.6%）</p>
+
+  <div class="io" style="margin-bottom:22px">
+    <div class="iobox"><b>x 输入</b>(N, 29)</div>
+    <div class="iobox"><b>t 输入</b>(N, 1)　逐字符</div>
+    <div class="iobox"><b>输出</b>logits (N,1,59)　+　weights (N,1,29)</div>
+  </div>
+
+  <div style="display:flex;justify-content:center;gap:70px;align-items:flex-start">
+
+    <!-- ENCODER -->
+    <div class="col">
+      <div class="grp">
+        <div class="lbl">ENCODER</div>
+        <div class="col">
+          <div class="b">Input x　(N,29)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">1</span>Embedding (59→64)</div>
+          <div class="ar">▼ <small>(N,29,64)</small></div>
+          <div class="b rel"><span class="num">2</span>GRU (64→128)</div>
+          <div class="ar">▼</div>
+          <div class="row" style="gap:18px">
+            <div class="col">
+              <div class="b dark sm">out (N,29,128)</div>
+              <div style="font-size:.68rem;color:#2e8b57;margin-top:5px;font-weight:600">✓ 全部保留</div>
+            </div>
+            <div class="col">
+              <div class="b dark sm">h (1,N,128)</div>
+              <div style="font-size:.68rem;color:#2e8b57;margin-top:5px;font-weight:600">✓ 保留</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DECODER LOOP -->
+    <div class="col">
+      <div style="border:2px solid #8e6fc4;border-radius:8px;padding:16px 20px;background:#fcfaff">
+        <div style="font-size:.74rem;font-weight:700;color:#6a4fa3;margin-bottom:14px;text-align:center">
+          ↻ DECODER　每步重复 step = 0 … 9
+        </div>
+
+        <div class="col">
+          <div class="b">Input t　(N,1)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">3</span>Embedding (59→64)</div>
+          <div class="ar">▼ <small>(N,1,64)</small></div>
+
+          <!-- attention block -->
+          <div style="border:1.5px solid #b39ddb;border-radius:5px;padding:12px 16px;
+                      background:#f6f2fd;margin:6px 0">
+            <div style="font-size:.7rem;font-weight:700;color:#6a4fa3;margin-bottom:9px;text-align:center">
+              ATTENTION
+            </div>
+            <div class="col">
+              <div class="b rel" style="background:#8e6fc4">
+                <span class="num">4</span>W_enc·out + W_dec·h
+              </div>
+              <div class="ar">▼ <small>(N,29,128)+(N,1,128)</small></div>
+              <div class="b rel" style="background:#8e6fc4">
+                <span class="num">5</span>tanh → v → score
+              </div>
+              <div class="ar">▼ <small>(N,29,1)</small></div>
+              <div class="b rel" style="background:#8e6fc4">
+                <span class="num">6</span>softmax(dim=1)
+              </div>
+              <div class="ar">▼ <small>weights (N,29,1)　和=1</small></div>
+              <div class="b rel" style="background:#8e6fc4">
+                <span class="num">7</span>context = Σ wᵢ·outᵢ
+              </div>
+              <div class="ar">▼ <small>(N,1,128)</small></div>
+            </div>
+          </div>
+
+          <div class="ar">▼ <small>拼接</small></div>
+          <div class="b sm">gru_in = [embed, context]　(N,1,192)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">8</span>GRU (192→128)</div>
+          <div class="ar">▼ <small>h 更新，回灌下一步</small></div>
+          <div class="b sm">combined = [h, context]　(N,1,256)</div>
+          <div class="ar">▼</div>
+          <div class="b rel"><span class="num">9</span>Linear (256→59)</div>
+          <div class="ar">▼</div>
+          <div class="b dark">logits　(N,1,59)</div>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;text-align:center;font-size:.75rem;color:#6a4fa3">
+        循环 10 次 → 拼成 logits (N,10,59)　·　weights 堆叠 (N,10,29) = 热力图
+      </div>
+    </div>
+  </div>
+
+  <table style="margin:22px auto 0">
+    <tr><th>#</th><th>层</th><th>权重形状</th><th>参数量</th></tr>
+    <tr><td>1</td><td>encoder.embed</td><td class="m">(59,64)</td><td>3,776</td></tr>
+    <tr><td>2</td><td>encoder.gru</td><td class="m">W_ih (384,64) · W_hh (384,128)</td><td>74,496</td></tr>
+    <tr><td>3</td><td>decoder.embed</td><td class="m">(59,64)</td><td>3,776</td></tr>
+    <tr><td>4</td><td>attention.w_encoder</td><td class="m">(128,128)</td><td>16,384</td></tr>
+    <tr><td>5</td><td>attention.w_decoder</td><td class="m">(128,128)</td><td>16,384</td></tr>
+    <tr><td>6</td><td>attention.v</td><td class="m">(1,128)</td><td>128</td></tr>
+    <tr><td>7</td><td>decoder.gru</td><td class="m">W_ih (384,192) · W_hh (384,128)</td><td>123,648</td></tr>
+    <tr><td>8</td><td>decoder.fc</td><td class="m">(59,256)</td><td>15,163</td></tr>
+    <tr><td colspan="3" style="text-align:right;font-weight:700">合计</td>
+        <td style="font-weight:700;color:#d35400">253,755</td></tr>
+  </table>
+
+  <p class="cap" style="text-align:center;max-width:820px;margin:16px auto 0">
+    <b>关键：weights 每一步重算。</b>解码器状态 h 变了，29 个输入位置的权重就跟着变 ——
+    这就是 attention 的核心。<br>
+    <b>GRU 输入 192 = 64（词向量）+ 128（context）</b>；
+    <b>Linear 输入 256 = 128（h）+ 128（context）</b>。
+  </p>
+</div>
+
+</body>
+</html>
